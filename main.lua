@@ -5,25 +5,25 @@
 ----  This source code is licensed under the Apache 2 license found in the
 ----  LICENSE file in the root directory of this source tree. 
 ----
-local ok,cunn = pcall(require, 'fbcunn')
-if not ok then
-    ok,cunn = pcall(require,'cunn')
-    if ok then
-        print("warning: fbcunn not found. Falling back to cunn") 
-        LookupTable = nn.LookupTable
-    else
-        print("Could not find cunn or fbcunn. Either is required")
-        os.exit()
-    end
-else
-    deviceParams = cutorch.getDeviceProperties(1)
-    cudaComputeCapability = deviceParams.major + deviceParams.minor/10
-    LookupTable = nn.LookupTable
-end
+--local ok,cunn = pcall(require, 'fbcunn')
+--if not ok then
+--    ok,cunn = pcall(require,'cunn')
+--    if ok then
+--        print("warning: fbcunn not found. Falling back to cunn") 
+--        LookupTable = nn.LookupTable
+--    else
+--        print("Could not find cunn or fbcunn. Either is required")
+--        os.exit()
+--    end
+--else
+--    deviceParams = cutorch.getDeviceProperties(1)
+--    cudaComputeCapability = deviceParams.major + deviceParams.minor/10
+--    LookupTable = nn.LookupTable
+--end
 require('nngraph')
 require('base')
 local ptb = require('data')
-
+local LookupTable=nn.LookupTable
 -- Train 1 day and gives 82 perplexity.
 --[[
 local params = {batch_size=20,
@@ -50,12 +50,14 @@ local params = {batch_size=20,
                 init_weight=0.1,
                 lr=1,
                 vocab_size=10000,
-                max_epoch=4,
-                max_max_epoch=13,
+               -- max_epoch=4,
+               -- max_max_epoch=13,
+		max_epoch=1,
+		max_max_epoch=2,
                 max_grad_norm=5}
 
 local function transfer_data(x)
-  return x:cuda()
+  return x--:cuda()
 end
 
 local state_train, state_valid, state_test
@@ -181,7 +183,7 @@ local function bp(state)
     local tmp = model.rnns[i]:backward({x, y, s},
                                        {derr, model.ds})[3]
     g_replace_table(model.ds, tmp)
-    cutorch.synchronize()
+   -- torch.synchronize()--cutorch.synchronize()
   end
   state.pos = state.pos + params.seq_length
   model.norm_dw = paramdx:norm()
@@ -269,7 +271,7 @@ local function main()
       end
     end
     if step % 33 == 0 then
-      cutorch.synchronize()
+     -- torch.synchronize()--cutorch.synchronize()
       collectgarbage()
     end
   end
